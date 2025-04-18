@@ -15,10 +15,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-
 @WebServlet("/time")
 public class TimeZoneServlet extends HttpServlet {
     private TemplateEngine engine;
+
     @Override
     public void init() throws ServletException {
         engine = new TemplateEngine();
@@ -38,19 +38,31 @@ public class TimeZoneServlet extends HttpServlet {
         resp.setContentType("text/html; charset=utf-8");
 
         String formattedUTC = (String) req.getAttribute("formattedUTC");
-        ZonedDateTime timeWthOffset = ZonedDateTime.now(ZoneOffset.of(formattedUTC));
-        String currentTime = timeWthOffset.format(DateTimeFormatter.ofPattern("yyyy-MM-dd, HH:mm:ss "));
 
-        Map<String, Object> model = new LinkedHashMap<>();
-        model.put("currentTime",currentTime);
-        model.put("currentUTC",formattedUTC);
+        try {
+            if (formattedUTC != null) {
+                ZonedDateTime timeWthOffset = ZonedDateTime.now(ZoneOffset.of(formattedUTC));
+                String currentTime = timeWthOffset.format(DateTimeFormatter.ofPattern("yyyy-MM-dd, HH:mm:ss"));
 
-        Context simpleContext = new Context(
-                req.getLocale(),
-                model
-        );
+                Map<String, Object> model = new LinkedHashMap<>();
+                model.put("currentTime", currentTime);
+                model.put("currentUTC", formattedUTC);
 
-        engine.process("time",simpleContext,resp.getWriter());
-        resp.getWriter().close();
+                Context simpleContext = new Context(req.getLocale(), model);
+
+                engine.process("time", simpleContext, resp.getWriter());
+            } else {
+                resp.getWriter().write("No timezone information provided.");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to write response");
+        } finally {
+            try {
+                resp.getWriter().close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

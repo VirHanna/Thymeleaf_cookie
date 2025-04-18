@@ -5,25 +5,27 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
+
 import static servlets.ParseUTC.parseUTC;
 
-@WebFilter("/time/*")
+@WebFilter("/time")
 public class TimezoneValidateFilter implements Filter {
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-        ParseUTC parseUTC = new ParseUTC();
+    public void init(FilterConfig filterConfig) {
+        // Не створюємо ParseUTC, бо метод статичний
     }
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain)
             throws IOException, ServletException {
+
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) resp;
 
         String notFormatedUTC = req.getParameter("timezone");
-
         String formattedUTC = null;
 
         try {
@@ -34,18 +36,17 @@ public class TimezoneValidateFilter implements Filter {
                 timeCookie.setPath("/");
                 timeCookie.setMaxAge(3600);
                 response.addCookie(timeCookie);
-            }
-            else {
+            } else {
                 Cookie[] cookies = request.getCookies();
-                if (cookies !=null){
-                    for(Cookie cookie: cookies){
-                        if("lastTimeZone".equals(cookie.getName())){
+                if (cookies != null) {
+                    for (Cookie cookie : cookies) {
+                        if ("lastTimeZone".equals(cookie.getName())) {
                             formattedUTC = cookie.getValue();
                             break;
                         }
                     }
                 }
-                if (formattedUTC == null){
+                if (formattedUTC == null) {
                     formattedUTC = "+00:00";
                 }
             }
@@ -53,11 +54,8 @@ public class TimezoneValidateFilter implements Filter {
             req.setAttribute("formattedUTC", formattedUTC);
             chain.doFilter(req, resp);
 
-        }
-        catch(IllegalArgumentException e){
-            HttpServletResponse httpResponse = (HttpServletResponse) resp;
-            httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid UTC format: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid UTC format: " + e.getMessage());
         }
     }
-
 }
